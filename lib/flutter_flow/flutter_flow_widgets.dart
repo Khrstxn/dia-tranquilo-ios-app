@@ -64,7 +64,7 @@ class FFButtonWidget extends StatefulWidget {
 
   final String text;
   final Widget? icon;
-  final IconData? iconData;
+  final Object? iconData;
   final Function()? onPressed;
   final FFButtonOptions options;
   final bool showLoadingIndicator;
@@ -94,6 +94,30 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
   void dispose() {
     _internalFocusNode.dispose();
     super.dispose();
+  }
+
+  Widget _buildButtonIcon(Object iconData) {
+    if (iconData is FaIconData) {
+      return FaIcon(
+        iconData,
+        size: widget.options.iconSize,
+        color: widget.options.iconColor,
+      );
+    }
+
+    if (iconData is IconData) {
+      return Icon(
+        iconData,
+        size: widget.options.iconSize,
+        color: widget.options.iconColor,
+      );
+    }
+
+    throw ArgumentError.value(
+      iconData,
+      'iconData',
+      'Expected IconData or FaIconData',
+    );
   }
 
   @override
@@ -152,6 +176,7 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
             side: widget.options.hoverBorderSide!,
           );
         }
+
         return RoundedRectangleBorder(
           borderRadius: widget.options.borderRadius ?? BorderRadius.circular(8),
           side: widget.options.borderSide ?? BorderSide.none,
@@ -162,10 +187,12 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
             widget.options.disabledTextColor != null) {
           return widget.options.disabledTextColor;
         }
+
         if (states.contains(WidgetState.hovered) &&
             widget.options.hoverTextColor != null) {
           return widget.options.hoverTextColor;
         }
+
         return widget.options.textStyle?.color ?? Colors.white;
       }),
       backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
@@ -173,27 +200,34 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
             widget.options.disabledColor != null) {
           return widget.options.disabledColor;
         }
+
         if (states.contains(WidgetState.hovered) &&
             widget.options.hoverColor != null) {
           return widget.options.hoverColor;
         }
+
         return widget.options.color;
       }),
       overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
         if (states.contains(WidgetState.pressed)) {
           return widget.options.splashColor;
         }
+
         return widget.options.hoverColor == null ? null : Colors.transparent;
       }),
       padding: WidgetStateProperty.all(
         widget.options.padding ??
-            const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+            const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 4.0,
+            ),
       ),
       elevation: WidgetStateProperty.resolveWith<double?>((states) {
         if (states.contains(WidgetState.hovered) &&
             widget.options.hoverElevation != null) {
           return widget.options.hoverElevation!;
         }
+
         return widget.options.elevation ?? 2.0;
       }),
       iconColor: WidgetStateProperty.resolveWith<Color?>((states) {
@@ -201,21 +235,19 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
             widget.options.disabledTextColor != null) {
           return widget.options.disabledTextColor;
         }
+
         if (states.contains(WidgetState.hovered) &&
             widget.options.hoverTextColor != null) {
           return widget.options.hoverTextColor;
         }
+
         return widget.options.iconColor;
       }),
     );
 
     if ((widget.icon != null || widget.iconData != null) && !loading) {
-      Widget icon = widget.icon ??
-          FaIcon(
-            widget.iconData!,
-            size: widget.options.iconSize,
-            color: widget.options.iconColor,
-          );
+      final Widget icon =
+          widget.icon ?? _buildButtonIcon(widget.iconData!);
 
       if (text == null) {
         return Container(
@@ -240,6 +272,7 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
           ),
         );
       }
+
       return SizedBox(
         height: widget.options.height,
         width: widget.options.width,
@@ -251,7 +284,8 @@ class _FFButtonWidgetState extends State<FFButtonWidget> {
           label: textWidget,
           onPressed: onPressed,
           style: style,
-          iconAlignment: widget.options.iconAlignment ?? IconAlignment.start,
+          iconAlignment:
+              widget.options.iconAlignment ?? IconAlignment.start,
           focusNode: _focusNode,
         ),
       );
@@ -295,18 +329,21 @@ extension _WithoutColorExtension on TextStyle {
         debugLabel: debugLabel,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
-        // The _package field is private so unfortunately we can't set it here,
-        // but it's almost always unset anyway.
-        // package: _package,
         overflow: overflow,
       );
 }
 
-// Slightly hacky method of getting the layout width of the provided text.
-double? _getTextWidth(String? text, TextStyle? style, int maxLines) =>
+double? _getTextWidth(
+  String? text,
+  TextStyle? style,
+  int maxLines,
+) =>
     text != null
         ? (TextPainter(
-            text: TextSpan(text: text, style: style),
+            text: TextSpan(
+              text: text,
+              style: style,
+            ),
             textDirection: TextDirection.ltr,
             maxLines: maxLines,
           )..layout())
@@ -364,26 +401,23 @@ class _FFFocusIndicatorState extends State<FFFocusIndicator> {
   void _onFocusChange() {
     if (mounted) {
       if (_focusNode.hasFocus) {
-        // No single ScrollPositionAlignmentPolicy scrolls in both directions.
-        // keepVisibleAtEnd scrolls DOWN (handles Shift+Tab wrap first → last).
-        // keepVisibleAtStart scrolls UP (handles Tab wrap last → first).
-        // Each is a no-op when the widget is already visible. We call
-        // keepVisibleAtEnd first so that keepVisibleAtStart gets the final
-        // say — ensuring the top of the widget is shown when it's taller
-        // than the viewport.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _focusNode.hasFocus) {
             Scrollable.ensureVisible(
               context,
-              alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+              alignmentPolicy:
+                  ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
             );
+
             Scrollable.ensureVisible(
               context,
-              alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+              alignmentPolicy:
+                  ScrollPositionAlignmentPolicy.keepVisibleAtStart,
             );
           }
         });
       }
+
       setState(() {
         _hasFocus = _focusNode.hasFocus;
       });
@@ -392,16 +426,16 @@ class _FFFocusIndicatorState extends State<FFFocusIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasInteractions = widget.onTap != null ||
+    final bool hasInteractions =
+        widget.onTap != null ||
         widget.onLongPress != null ||
         widget.onDoubleTap != null;
 
     Widget childWidget;
+
     if (widget.builder != null) {
-      // Builder mode: pass focus node to builder
       childWidget = widget.builder!(_focusNode);
     } else if (hasInteractions) {
-      // Child mode with interactions: wrap in InkWell
       childWidget = InkWell(
         splashColor: Colors.transparent,
         hoverColor: Colors.transparent,
@@ -414,7 +448,6 @@ class _FFFocusIndicatorState extends State<FFFocusIndicator> {
         child: widget.child!,
       );
     } else {
-      // Child mode without interactions: just use child
       childWidget = widget.child!;
     }
 
@@ -423,7 +456,8 @@ class _FFFocusIndicatorState extends State<FFFocusIndicator> {
       padding: _hasFocus ? widget.padding : null,
       decoration: BoxDecoration(
         border: _hasFocus ? widget.border : null,
-        borderRadius: widget.borderRadius ?? BorderRadius.circular(4),
+        borderRadius:
+            widget.borderRadius ?? BorderRadius.circular(4),
       ),
       child: childWidget,
     );
