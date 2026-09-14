@@ -1,0 +1,56 @@
+name: Validate Dia Tranquilo iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Show macOS and Xcode versions
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Prepare iOS project without code signing
+        run: flutter build ios --config-only --no-codesign --debug
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install
+
+      - name: List Xcode schemes and targets
+        working-directory: ios
+        run: |
+          xcodebuild -list -workspace Runner.xcworkspace
+          echo "----- PROJECT TARGETS -----"
+          xcodebuild -list -project Runner.xcodeproj
+
+      - name: Build Runner and embedded Call Directory Extension
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
